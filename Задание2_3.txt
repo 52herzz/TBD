@@ -1,0 +1,439 @@
+--task 2.3.1
+select s.name, surname, h.name
+from "student" s, "student_hobby" sh, "hobby" h
+where s.id = sh.id_student
+and h.id = sh.id_hobby;
+
+--task 2.3.2
+select *
+from "student" s, "student_hobby" sh, "hobby" h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and sh.date_finish is NULL
+order by sh.date_start
+limit 1;
+
+--task 2.3.3
+select name, surname, date_birth, sum
+from student s,
+	(select AVG(score) from student) as t1,
+	(
+	select s.id, sum(risk)
+	from "student" s, "student_hobby" sh, "hobby" h
+	where s.id = sh.id_student
+	and h.id = sh.id_hobby
+	group by s.id
+	) as t2
+where score >= t1.avg 
+and s.id = t2.id
+and t2.sum >= 0.9;
+
+--task 2.3.4
+select s.name, surname, date_birth, h.name, "Date"
+from "student" s, "student_hobby" sh, "hobby" h,
+	(
+	select s.id, (date_finish - date_start)/30 as "Date"
+	from "student" s, "student_hobby" sh, "hobby" h
+	where s.id = sh.id_student
+	and h.id = sh.id_hobby
+	and sh.date_finish is not NULL
+	) as t1
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and sh.date_finish is not NULL
+and s.id = t1.id;
+
+--task 2.3.5
+select s.name, surname, date_birth
+from "student" s, "student_hobby" sh, "hobby" h,
+	(
+	select s.id, COUNT(*)
+	from "student" s, "student_hobby" sh, "hobby" h
+	where s.id = sh.id_student
+	and h.id = sh.id_hobby
+	and sh.date_finish is NULL
+	group by s.id
+	) as t1
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and t1.id = s.id
+and t1.count > 1
+and n_group::varchar(DATE_PART('day', (Now() - date_birth))/365 as INT) = 20;
+
+--task 2.3.6
+
+select distinct s.n_group, t1.avg
+from "student" s, "student_hobby" sh, "hobby" h,
+	(select AVG(score),n_group
+	from "student" s, "student_hobby" sh, "hobby" h
+	where s.id = sh.id_student
+	and h.id = sh.id_hobby
+	and sh.date_finish is NULL
+	group by n_group) as t1
+
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and s.n_group = t1.n_group;
+
+--task 2.3.7
+select h.name, risk, cast(DATE_PART('day', (Now() - date_start))/30 as INT) as "Duration"
+from "student" s, "student_hobby" sh, "hobby" h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and s.id = 1
+and sh.date_finish is NULL
+order by sh.date_start
+limit 1;
+
+--task 2.3.8
+select h.name
+from "student" s, "student_hobby" sh, "hobby" h, (select MAX(score) from student) as t1
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and t1.max = s.score;
+
+--task 2.3.9
+select h.name
+from "student" s, "student_hobby" sh, "hobby" h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and sh.date_finish is NULL
+and cast(n_group as varchar) like '2%' and score < 3.5;
+
+--task 2.3.10
+CREATE OR REPLACE VIEW t10_vse AS
+select cast(left(cast(n_group as varchar), 1) as INT) as "course", count(*)
+from "student" 										  
+group by cast(left(cast(n_group as varchar), 1) as INT);
+
+CREATE OR REPLACE VIEW t10_only_hobby AS
+select cast(left(cast(n_group as varchar), 1) as INT) as "course",count(*) from "student" s,
+(select s.id,count(s.id) from "student" s, "student_hobby" sh, "hobby" h
+		where s.id = sh.id_student
+		and h.id = sh.id_hobby
+		and sh.date_finish is NULL
+		group by s.id
+		) as t1
+where s.id = t1.id
+and t1.count > 1
+group by cast(left(cast(n_group as varchar), 1) as INT);
+
+SELECT *
+FROM t10_vse,t10_only_hobby
+where t10_vse.course = t10_only_hobby.course
+and cast(t10_only_hobby.count as float)/ cast(t10_vse.count as float) > 0.5;
+
+--task 2.3.11
+select t1.n_group
+from 
+	(select count(id), n_group 
+	from student
+	where score >= 4
+	group by n_group) as t1,
+(select count(id),n_group
+from student
+group by n_group) as t2
+where cast(t1.count as float)/ cast(t2.count as float) >= 0.6
+and t1.n_group = t2.n_group;
+
+--task 2.3.12
+select cast(left(cast(n_group as varchar), 1) as INT) as course, count(*) from student s,student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and sh.date_finish is NULL
+group by cast(left(cast(n_group as varchar), 1) as INT);
+
+--task 2.3.13
+select cast(left(cast(n_group as varchar), 1) as INT) as course, s.id,s.name,surname,date_birth
+from student s
+except
+select cast(left(cast(n_group as varchar), 1) as INT) as course, s.id,s.name,surname,date_birth
+from student_hobby sh, student s
+where sh.id_student = s.id
+order by course,
+date_birth;
+
+--task 2.3.14
+CREATE OR REPLACE VIEW performance AS
+select s.id,s.name,surname,n_group,date_birth,city,email,score
+from student_hobby sh, student s
+where sh.id_student = s.id
+and sh.date_finish is NULL
+and  cast(left(cast( (SELECT Now()) as varchar), 4) as INT)- cast(left(cast( (sh.date_start) as varchar), 4) as INT) >=5;
+
+select *
+from performance;
+
+--task 2.3.15
+select h.name,count(s.id)
+from student_hobby sh, student s, hobby h
+where sh.id_student = s.id
+and h.id = sh.id_hobby
+group by h.name;
+
+--task 2.3.16
+select t3.id
+from
+(select MAX(t1.count)
+from
+(select h.id,count(s.id)
+from student_hobby sh, student s, hobby h
+where sh.id_student = s.id
+and h.id = sh.id_hobby
+group by h.id) as t1) as t2,
+(select h.id,count(s.id)
+from student_hobby sh, student s, hobby h
+where sh.id_student = s.id
+and h.id = sh.id_hobby
+group by h.id) as t3
+where t3.count = t2.max;
+
+--task 2.3.17
+select distinct s.id,s.name,surname,n_group,date_birth,city,email,score,h.name,date_start,date_finish
+from  student s, student_hobby sh, hobby h
+ 
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and h.name in (select t3.name
+from
+(select MAX(t1.count)
+from
+(select h.name,count(s.id)
+from student_hobby sh, student s, hobby h
+where sh.id_student = s.id
+and h.id = sh.id_hobby
+group by h.name) as t1) as t2,
+(select h.name,count(s.id)
+from student_hobby sh, student s, hobby h
+where sh.id_student = s.id
+and h.id = sh.id_hobby
+group by h.name) as t3
+where t3.count = t2.max);
+
+--task 2.3.18
+select id
+from hobby
+order by risk desc
+limit 3;
+
+--task 2.3.19
+select s.id, sum(t1.coalesce - date_start)
+from  student s, student_hobby sh, hobby h,
+(select coalesce(sh.date_finish,cast(left(cast( (SELECT Now()) as varchar), 10)as date)), id
+from  student_hobby sh) as t1
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and t1.id = sh.id
+group by s.id
+order by sum desc
+limit 10;
+
+--task 2.3.20
+select distinct n_group
+from student s,
+(select s.id, sum(t1.coalesce - date_start)
+from  student s, student_hobby sh, hobby h,
+(select coalesce(sh.date_finish,cast(left(cast( (SELECT Now()) as varchar), 10)as date)), id
+from  student_hobby sh) as t1
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and t1.id = sh.id
+group by s.id
+order by sum desc
+limit 10) as t19
+where s.id = t19.id;
+
+--task 2.3.21
+CREATE OR REPLACE VIEW performance_21 AS
+select id,name,surname,score
+from student
+order by score desc;
+
+select *
+from performance_21;
+
+--task 2.3.22
+CREATE OR REPLACE VIEW performance_22 AS
+select t3.course,t3.name
+from
+(select t1.course, MAX(t1.count)
+from 
+(select cast(left(cast(n_group as varchar), 1) as INT) as course,h.name,count(s.id)
+from  student s, student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+group by course,h.name
+order by course,count(s.id)) as t1
+group by t1.course) as t2,
+
+(select cast(left(cast(n_group as varchar), 1) as INT) as course,h.name,count(s.id)
+from  student s, student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+group by course,h.name
+order by course,count(s.id)) as t3
+where t3.count = t2.max
+and t3.course = t2.course
+order by course;
+
+select *
+from performance_22;
+
+--task 2.3.23
+CREATE OR REPLACE VIEW performance_23 AS
+select MAX risk,h.name
+from hobby h,
+(select count(s.id),h.name
+from  student s, student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and cast(left(cast(n_group as varchar), 1) as INT) = 2
+group by h.name)as t3,
+
+(select MAX(t1.count)
+from
+(select count(s.id)
+from  student s, student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and cast(left(cast(n_group as varchar), 1) as INT) = 2
+group by h.name) as t1) as t2
+where t3.count = t2.max
+and t3.name = h.name
+order by risk
+limit 1;
+
+select *
+from performance_23;
+
+--task 2.3.24
+CREATE OR REPLACE VIEW performance_24 AS
+select t1.course,t2.all,t1.otl
+from
+(select cast(left(cast(n_group as varchar), 1) as INT) as course,count(id) as otl
+from student
+where score >= 4.5
+group by course) as t1,
+
+(select cast(left(cast(n_group as varchar), 1) as INT) as course,count(id) as all
+from student
+group by course) as t2
+where t1.course = t2.course;
+
+select *
+from performance_24;
+
+--task 2.3.25
+CREATE OR REPLACE VIEW performance_25 AS
+select t3.name
+from
+(select MAX(t1.count)
+from
+(select h.name,count(s.id)
+from student_hobby sh, student s, hobby h
+where sh.id_student = s.id
+and h.id = sh.id_hobby
+group by h.name) as t1) as t2,
+(select h.name,count(s.id)
+from student_hobby sh, student s, hobby h
+where sh.id_student = s.id
+and h.id = sh.id_hobby
+group by h.name) as t3
+where t3.count = t2.max;
+
+select *
+from performance_25;
+
+--task 2.3.26
+CREATE OR REPLACE VIEW performance_26 AS 
+select sh.id_student, sh.id_hobby
+from student_hobby sh
+where date_finish is NULL;
+
+select *
+from performance_26;
+--task 2.3.27	
+select t1.alf, t1.max,t1.min,t1.avg
+from 
+(select left(name,1) as alf, MAX(score),MIN(score),AVG(score)
+from  student
+group by alf) as t1
+where t1.max >3.6;
+
+--task 2.3.28
+select cast(left(cast(n_group as varchar), 1) as INT) as course, surname, MAX(score), MIN(score)
+from student
+group by course, surname
+order by course;
+--task 2.3.29
+select date_birth,count(sh.id)
+from  student s, student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+group by date_birth;
+
+--task 2.3.30
+select left(s.name, 1) as alf,MAX(h.risk),MIN(h.risk)
+from  student s, student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+group by alf;
+
+
+--task 2.3.31
+select cast(right(left(cast( (date_birth) as varchar), 7), 2) as INT) as mm,AVG(score)
+from  student s, student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby
+and h.name = 'Футбол'
+group by mm;
+
+--task 2.3.32
+select s.name as "Имя:", surname as "Фамилия:", n_group as "Группа:"
+from  student s, student_hobby sh, hobby h
+where s.id = sh.id_student
+and h.id = sh.id_hobby;
+
+--task 2.3.33 coalesce
+SELECT surname,
+CASE WHEN POSITION('ов' IN surname) > 0 THEN cast (POSITION('ов' IN surname)as varchar) 
+else 'не найдено' END AS position
+FROM student;
+
+--task 2.3.34
+SELECT RPAD(name, 10, '#') FROM student;
+--task 2.3.35
+SELECT REPLACE(t1.rpad, '#', '') 
+FROM 
+(SELECT RPAD(name, 10, '#') FROM student) as t1;
+--task 2.3.36
+SELECT EXTRACT(DAY FROM DATE '2018-04-01' + INTERVAL '1 MONTH - 1 DAY');
+--task 2.3.37
+SELECT DATE_TRUNC('week', NOW())::DATE + '5 days'::INTERVAL AS closest_saturday;
+--task 2.3.38
+SELECT CEIL(EXTRACT(YEAR FROM CURRENT_DATE)/100.0) AS century, 
+EXTRACT(WEEK FROM CURRENT_DATE) AS week_of_year, DATE_PART('doy', CURRENT_DATE) AS day_of_year;
+--task 2.3.39
+SELECT students.first_name, students.last_name, hobbies.name,
+IF(student_hobbies.is_current = 1, 'занимается', 'закончил') as status
+FROM
+students
+INNER JOIN student_hobbies
+ON students.id = student_hobbies.student_id
+INNER JOIN hobbies
+ON student_hobbies.hobby_id = hobbies.id
+WHERE
+student_hobbies.is_current = 1 OR student_hobbies.is_current = 0;
+
+--task 2.3.40
+CREATE OR REPLACE VIEW performance_40 AS
+SELECT
+n_group,
+ROUND(COUNT(CASE WHEN score >=4.5 THEN 1 END)) AS "5",
+ROUND(COUNT(CASE WHEN score >= 3.5 and score < 4.5 THEN 1 END)) AS "4",
+ROUND(COUNT(CASE WHEN score >= 2.5 and score < 3.5 THEN 1 END)) AS "3",
+ROUND(COUNT(CASE WHEN score < 2.5 THEN 1 END)) AS "2"
+FROM student
+GROUP BY n_group;
+
+select * from performance_40

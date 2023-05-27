@@ -1,0 +1,59 @@
+--task 2.2.1
+SELECT s.num_group, COUNT(s)
+FROM student s
+GROUP BY s.num_group;
+
+--task 2.2.2
+SELECT s.num_group, MAX(avg_score)
+FROM student s
+GROUP BY s.num_group;
+
+--task 2.2.3
+SELECT s.surname, COUNT(s.surname)
+FROM student s
+GROUP BY s.surname;
+
+--task 2.2.4
+SELECT EXTRACT(YEAR FROM s.date_birth), COUNT(*)
+FROM student s
+GROUP BY EXTRACT(YEAR FROM s.date_birth);
+
+--task 2.2.5
+SELECT SUBSTRING(s.num_group::varchar, 1, 1) AS course, AVG(s.avg_score) AS avg_score
+FROM student s
+GROUP BY SUBSTRING(s.num_group::varchar, 1, 1);
+
+--task 2.2.6
+SELECT s.num_group, MAX(s.avg_score) as max_avg
+FROM student s
+WHERE SUBSTRING(s.num_group::varchar, 1, 1) = '2'
+GROUP BY s.num_group
+ORDER BY max_avg DESC
+LIMIT 1;
+
+--task 2.2.7
+SELECT s.num_group, AVG(s.avg_score) as avg_score1
+FROM student s
+GROUP BY s.num_group
+HAVING AVG(s.avg_score) <= 3.5
+ORDER BY avg_score1
+
+--task 2.2.8
+SELECT s.num_group, COUNT(s.record_book) AS students, MAX(s.avg_score) AS max_score,
+	AVG(s.avg_score) AS avg_score, MIN(s.avg_score) AS min_score
+FROM student s
+GROUP BY s.num_group;
+
+--task 2.2.9
+SELECT s.*
+FROM (SELECT s.num_group, MAX(s.avg_score) AS max_score
+	FROM student s
+	GROUP BY s.num_group) t, student s
+WHERE s.num_group = 2251 AND t.num_group = s.num_group AND t.max_score = s.avg_score;
+
+--task 2.2.10
+SELECT s.*
+FROM (SELECT s.num_group, MAX(s.avg_score) AS max_score
+	FROM student s
+	GROUP BY s.num_group) t, student s
+WHERE t.num_group = s.num_group AND t.max_score = s.avg_score;
